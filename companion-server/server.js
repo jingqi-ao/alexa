@@ -117,6 +117,13 @@ app.get('/auth/amazonresponse', function(req, res) {
             console.log("body");
             console.log(typeof body);
             console.log(body);
+
+            tokenObj = JSON.parse(body);
+
+            // TEST ONLY:Triger avs functions
+            setTimeout(avsPing, 5000);
+            // TEST ONLY (END)
+
             res.send('Tokens obtained');
         });
     }
@@ -148,4 +155,57 @@ function getTokens(code, client_id, client_secret, redirect_uri, callback) {
     request.post({
         url:'https://api.amazon.com/auth/o2/token',
         form: formObj}, callback);
+}
+
+// AVS
+var avsAPIEndPoint = "https://avs-alexa-na.amazon.com";
+
+var avsAPIHostName = "avs-alexa-na.amazon.com";
+
+var http2 = require('http2');
+
+var avsAPIEventsEndpoint = "/v20160207/events";
+var avsAPIDirectivesEndpoint = "/v20160207/directives";
+
+function avsPing() {
+
+    console.log("avsPing options");
+    console.log(options);
+
+    var options = {
+        hostname: avsAPIHostName,
+        port: 443,
+        path: '/ping',
+        method: 'GET',
+        headers: {
+            'Authorization': 'Bearer ' + tokenObj.access_token
+        }
+    };
+
+    console.log("avsPing options");
+    console.log(options);
+
+    var req = http2.request(options, function(res) {
+
+        if(res.statusCode === 204) {
+            console.log("avsPing succeeded.");
+        }
+
+        res.on('data', function(chuck) {
+            console.log(chunk);
+        });
+
+        res.on('end', function() {
+            console.log('No more data in response.')
+        });
+
+    });
+
+    req.on('error', (e) => {
+        console.log(e);
+        //console.log(`problem with request: ${e.message}`);
+    });
+
+    req.end();
+
 }
