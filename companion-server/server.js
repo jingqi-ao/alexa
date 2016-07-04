@@ -121,7 +121,8 @@ app.get('/auth/amazonresponse', function(req, res) {
             tokenObj = JSON.parse(body);
 
             // TEST ONLY:Triger avs functions
-            setTimeout(avsPing, 5000);
+            //setTimeout(avsCreateDownChannelStream, 3000);
+            setTimeout(testFunc, 3000);
             // TEST ONLY (END)
 
             res.send('Tokens obtained');
@@ -158,19 +159,138 @@ function getTokens(code, client_id, client_secret, redirect_uri, callback) {
 }
 
 // AVS
-var avsAPIEndPoint = "https://avs-alexa-na.amazon.com";
-
-var avsAPIHostName = "avs-alexa-na.amazon.com";
+function testFunc() {
+    avsCreateDownChannelStream();
+    setTimeout(avsSendSynchronizeStateEvent, 10000);
+}
 
 var http2 = require('http2');
+var uuid = require('node-uuid');
+
+var avsAPIEndPoint = "https://avs-alexa-na.amazon.com";
+var avsAPIHostName = "avs-alexa-na.amazon.com";
 
 var avsAPIEventsEndpoint = "/v20160207/events";
 var avsAPIDirectivesEndpoint = "/v20160207/directives";
 
-function avsPing() {
 
-    console.log("avsPing options");
+var mutlipartBoundary = "boundary"
+var boundaryDelimiter = "--" + mutlipartBoundary + "\r\n";
+var endBoundaryDelimiter = "--" + mutlipartBoundary + "--" + "\r\n";
+function avsSendSynchronizeStateEvent() {
+
+    var ctx = [
+        {
+            "header": {
+                "namespace": "AudioPlayer",
+                "name": "PlaybackState"
+            },
+            "payload": {
+                "token": "",
+                "offsetInMilliseconds": 0,
+                "playerActivity": "IDLE"
+            }
+        },
+        {
+            "header": {
+                "namespace": "Alerts",
+                "name": "AlertsState"
+            },
+            "payload": {
+                "allAlerts": [],
+                "activeAlerts": []
+            }
+        },
+        {
+            "header": {
+                "namespace": "Speaker",
+                "name": "VolumeState"
+            },
+            "payload": {
+                "volume": 0,
+                "muted": false
+            }
+        },
+        {
+            "header": {
+                "namespace": "SpeechSynthesizer",
+                "name": "SpeechState"
+            },
+            "payload": {
+                "token": "",
+                "offsetInMilliseconds": 0,
+                "playerActivity": "FINISHED"
+            }
+        }
+    ];
+
+    var evt = {
+        "header": {
+            "namespace": "System",
+            "name": "SynchronizeState",
+            "messageId": uuid.v1()
+        },
+        "payload": {
+        }
+    }
+
+    var body = {
+        "context": ctx,
+        "event": evt
+    };
+
+    var mutipartBody = boundaryDelimiter +
+        'Content-Disposition: form-data; name="metadata"' + '\r\n' + 
+        'Content-Type: application/json; charset=UTF-8' + '\r\n' + 
+        '\r\n' +
+        JSON.stringify(body) + '\r\n' +
+        endBoundaryDelimiter;
+
+    console.log("mutipartBody");
+    console.log(mutipartBody);
+
+    var options = {
+        hostname: avsAPIHostName,
+        port: 443,
+        path: avsAPIEventsEndpoint,
+        method: 'POST',
+        headers: {
+            'Authorization': 'Bearer ' + tokenObj.access_token,
+            "Content-type": "multipart/form-data; boundary="+mutlipartBoundary
+        }
+    };
+
+    console.log("avsSendSynchronizeStateEvent options");
     console.log(options);
+
+    var req = http2.request(options, function(res) {
+
+        console.log(res.statusCode);
+
+        res.on('data', function(chunk) {
+            console.log(chunk);
+            var textChunk = chunk.toString('utf8');
+            console.log(textChunk);
+        });
+
+        res.on('end', function() {
+            console.log('No more data in response.')
+        });
+
+    });
+
+    req.on('error', (e) => {
+        console.log(e);
+        //console.log(`problem with request: ${e.message}`);
+    });
+
+    req.write(mutipartBody);
+
+    req.end();
+
+}
+
+function avsPing() {
 
     var options = {
         hostname: avsAPIHostName,
@@ -191,7 +311,47 @@ function avsPing() {
             console.log("avsPing succeeded.");
         }
 
-        res.on('data', function(chuck) {
+        res.on('data', function(chunk) {
+            console.log(chunk);
+        });
+
+        res.on('end', function() {
+            console.log('No more data in response.')
+        });
+
+    });
+
+    req.on('error', (e) => {
+        console.log(e);
+        //console.log(`problem with request: ${e.message}`);
+    });
+
+    req.end();
+
+}
+
+function avsCreateDownChannelStream() {
+
+    var options = {
+        hostname: avsAPIHostName,
+        port: 443,
+        path: avsAPIDirectivesEndpoint,
+        method: 'GET',
+        headers: {
+            'Authorization': 'Bearer ' + tokenObj.access_token
+        }
+    };
+
+    console.log("avsCreateDownChannelStream options");
+    console.log(options);
+
+    var req = http2.request(options, function(res) {
+
+        if(res.statusCode === 204) {
+            console.log("avsPing succeeded.");
+        }
+
+        res.on('data', function(chunk) {
             console.log(chunk);
         });
 
