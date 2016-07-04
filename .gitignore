@@ -6,3 +6,5 @@ node_modules
 
 # companion server
 companion-server/scripts/certs
+companion-server/certs
+avs.json

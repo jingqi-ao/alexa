@@ -1,8 +1,10 @@
 {
-  "name": "alexa-companion-server",
-  "version": "0.0.1",
-  "license": "MIT",
-  "dependencies": {
-    "express": "4.14.0"
-  }
+    "name": "alexa-companion-server",
+    "version": "0.0.1",
+    "license": "MIT",
+    "dependencies": {
+        "express": "4.14.0",
+        "request": "2.72.0",
+        "body-parser": "1.15.2 "
+    }
 }
