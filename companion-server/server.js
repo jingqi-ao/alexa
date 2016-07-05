@@ -162,10 +162,12 @@ function getTokens(code, client_id, client_secret, redirect_uri, callback) {
 function testFunc() {
     avsCreateDownChannelStream();
     setTimeout(avsSendSynchronizeStateEvent, 10000);
+    setTimeout(avsSendSpeechRecognizerRecognizeEvent, 20000);
 }
 
 var http2 = require('http2');
 var uuid = require('node-uuid');
+var formidable = require('formidable');
 
 var avsAPIEndPoint = "https://avs-alexa-na.amazon.com";
 var avsAPIHostName = "avs-alexa-na.amazon.com";
@@ -177,6 +179,174 @@ var avsAPIDirectivesEndpoint = "/v20160207/directives";
 var mutlipartBoundary = "boundary"
 var boundaryDelimiter = "--" + mutlipartBoundary + "\r\n";
 var endBoundaryDelimiter = "--" + mutlipartBoundary + "--" + "\r\n";
+
+function avsSendSpeechRecognizerRecognizeEvent() {
+        var ctx = [
+        {
+            "header": {
+                "namespace": "AudioPlayer",
+                "name": "PlaybackState"
+            },
+            "payload": {
+                "token": "",
+                "offsetInMilliseconds": 0,
+                "playerActivity": "IDLE"
+            }
+        },
+        {
+            "header": {
+                "namespace": "Alerts",
+                "name": "AlertsState"
+            },
+            "payload": {
+                "allAlerts": [],
+                "activeAlerts": []
+            }
+        },
+        {
+            "header": {
+                "namespace": "Speaker",
+                "name": "VolumeState"
+            },
+            "payload": {
+                "volume": 0,
+                "muted": false
+            }
+        },
+        {
+            "header": {
+                "namespace": "SpeechSynthesizer",
+                "name": "SpeechState"
+            },
+            "payload": {
+                "token": "",
+                "offsetInMilliseconds": 0,
+                "playerActivity": "FINISHED"
+            }
+        }
+    ];
+
+    var evt = {
+        "header": {
+            "namespace": "SpeechRecognizer",
+            "name": "Recognize",
+            "messageId": uuid.v1(),
+            "dialogRequestId": uuid.v1()
+        },
+        "payload": {
+            "profile": "CLOSE_TALK",
+            "format": "AUDIO_L16_RATE_16000_CHANNELS_1"
+        }
+    }
+
+    var body = {
+        "context": ctx,
+        "event": evt
+    };
+
+    var mutipart1 = boundaryDelimiter +
+        'Content-Disposition: form-data; name="metadata"' + '\r\n' + 
+        'Content-Type: application/json; charset=UTF-8' + '\r\n' + 
+        '\r\n' +
+        JSON.stringify(body) + '\r\n';
+
+    console.log("mutipart1");
+    console.log(mutipart1);
+
+    var multipart2Head = boundaryDelimiter +
+        'Content-Disposition: form-data; name="audio"' + '\r\n' + 
+        'Content-Type: application/octet-stream' + '\r\n' + 
+        '\r\n';
+
+    var multipart2AudioBuffer = fs.readFileSync('/home/jao/wavs/weather.wav');
+    //var multipart2AudioBuffer = fs.readFileSync('/home/jao/wavs/test-small.bin');
+
+    console.log("multipart2AudioBuffer length");
+    console.log(multipart2AudioBuffer.length);
+
+    var multipart2End = '\r\n' + endBoundaryDelimiter;
+
+
+    // Buffers
+    var multipart1Buffer = Buffer.from(mutipart1);
+
+    var multipart2HeadBuffer = Buffer.from(multipart2Head);
+    var multipart2EndBuffer = Buffer.from(multipart2End);
+
+    var bodyBuffer = Buffer.concat([multipart1Buffer, multipart2HeadBuffer, multipart2AudioBuffer, multipart2EndBuffer], 
+        multipart1Buffer.length + multipart2HeadBuffer.length + multipart2AudioBuffer.length + multipart2EndBuffer.length);
+
+    console.log("bodyBuffer length");
+    console.log(bodyBuffer.length);
+
+    var options = {
+        hostname: avsAPIHostName,
+        port: 443,
+        path: avsAPIEventsEndpoint,
+        method: 'POST',
+        headers: {
+            'Authorization': 'Bearer ' + tokenObj.access_token,
+            "Content-type": "multipart/form-data; boundary="+mutlipartBoundary
+        }
+    };
+
+    console.log("avsSendSpeechRecognizerRecognizeEvent options");
+    console.log(options);
+
+    var req = http2.request(options, function(res) {
+
+        console.log("res.statusCode");
+        console.log(res.statusCode);
+
+        console.log("res.headers");
+        console.log(res.headers);
+
+        var writeStream = fs.createWriteStream('/home/jao/wavs/response');
+        res.pipe(writeStream);
+
+        res.on('data', function(chunk) {
+            console.log("on data");
+            console.log(chunk);
+            //var textChunk = chunk.toString('utf8');
+            //console.log(textChunk);
+
+        });
+
+        res.on('end', function() {
+            console.log('No more data in response.')
+        });
+
+
+        /*
+        var form = new formidable.IncomingForm();
+        form.encoding = 'binary';
+        form.parse(res, function(err, fields, files) {
+            console.log("err");
+            console.log(err);
+
+            console.log("fields");
+            console.log(fields);
+
+            console.log("files");
+            console.log(files);
+        });
+*/
+
+    });
+
+    req.on('error', (e) => {
+        console.log(e);
+        //console.log(`problem with request: ${e.message}`);
+    });
+
+    console.log("bodyBuffer");
+    console.log(bodyBuffer.toString());
+
+    req.write(bodyBuffer);
+
+    req.end();
+}
+
 function avsSendSynchronizeStateEvent() {
 
     var ctx = [
