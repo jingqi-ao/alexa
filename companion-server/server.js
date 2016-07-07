@@ -21,8 +21,106 @@ https.createServer(options, app).listen(port, function () {
 });
 
 app.get('/', function (req, res) {
+    console.log("client connected ...");
     res.send('Hello World!');
 });
+
+// Handle client upload
+var formidable = require('formidable');
+
+var Transcoder = require("./Transcoder.js");
+var transcoder = Transcoder();
+
+app.post('/events', function(req, res) {
+
+    console.log(req.get('Content-Type'));
+
+    var form = new formidable.IncomingForm();
+    form.encoding = 'binary';
+    form.uploadDir = "/tmp";
+
+    form.parse(req, function(err, fields, files) {
+
+        console.log("err");
+        console.log(err);
+
+        console.log("fields");
+        console.log(fields);
+
+        console.log("files");
+        console.log(files);
+
+        // For some reason, this event never got triggerred
+        form.on('file', function(field, file) {
+            //rename the incoming file to the file's name
+            //fs.rename(file.path, form.uploadDir + "/" + "clientAudio.3pg");
+
+            console.log('HERE');
+
+            var threeGPPFileFullPath = file.path;
+            var wavFileFullPath = file.path + '.wav';
+
+            // Transcaode .3gpp file to .wav file
+            transcoder.threeGPPtoWav(threeGPPFileFullPath, wavFileFullPath);
+
+            // Read .wav file into buffer
+            var wavFileBuffer = fs.readFileSync(wavFileFullPath);
+
+            console.log('HERE');
+
+            // Send AVS speech recognition event
+
+            var eventParam = {
+                audioBuffer: wavFileBuffer
+            };
+
+            //avsSendSpeechRecognizerRecognizeEvent(eventParam);
+
+            //res.send('POST /events');
+
+        });
+
+        console.log('HERE');
+
+        var file = files.audio;
+
+        console.log(typeof file);
+
+        var threeGPPFileFullPath = file.path;
+        var wavFileFullPath = file.path + '.wav';
+
+        // Transcaode .3gpp file to .wav file
+        transcoder.threeGPPtoWav(threeGPPFileFullPath, wavFileFullPath);
+
+        // Read .wav file into buffer
+        var wavFileBuffer = fs.readFileSync(wavFileFullPath);
+
+        console.log('HERE');
+
+        // Send AVS speech recognition event
+        var eventParam = {
+            audioBuffer: wavFileBuffer
+        };
+
+        //avsSendSpeechRecognizerRecognizeEvent(eventParam);
+
+        var config = {
+            response: {
+                storage: {
+                    localFullPath: file.path + 'response.wav'
+                }
+            }
+        }
+
+        avsSendSpeechRecognizerRecognizeEvent(eventParam, config, function(error, data) {
+            res.status(200).send(data.audioBuffer);
+        });
+
+        //res.send('POST /events');
+
+    });
+
+})
 
 
 // Load avs.json
@@ -162,7 +260,7 @@ function getTokens(code, client_id, client_secret, redirect_uri, callback) {
 function testFunc() {
     avsCreateDownChannelStream();
     setTimeout(avsSendSynchronizeStateEvent, 10000);
-    setTimeout(avsSendSpeechRecognizerRecognizeEvent, 20000);
+    //setTimeout(avsSendSpeechRecognizerRecognizeEvent, 20000);
 }
 
 var http2 = require('http2');
@@ -187,12 +285,11 @@ var AVSHttp2 = require("./AVSHttp2.js");
 var avsHttp2 = AVSHttp2();
 
 // TEST ONLY
-var multipart2AudioBuffer = fs.readFileSync('/home/jao/wavs/weather.wav');
+//var multipart2AudioBuffer = fs.readFileSync('/home/jao/wavs/weather.wav');
+var multipart2AudioBuffer = fs.readFileSync('/home/jao/wavs/audiorecordtest3gp.wav');
 // TEST ONLY (END)
 
-function avsSendSpeechRecognizerRecognizeEvent() {
-
-
+function avsSendSpeechRecognizerRecognizeEvent(eventParam, config, callback) {
 
     var ctx = avsEvents.generateContextJSON();
     var evt = avsEvents.generateEventJSON("SpeechRecognizer.Recognize");
@@ -205,7 +302,7 @@ function avsSendSpeechRecognizerRecognizeEvent() {
             }
         },
         audioPart: {
-            bodyBuffer: multipart2AudioBuffer
+            bodyBuffer: eventParam.audioBuffer
         }
     };
 
@@ -213,7 +310,24 @@ function avsSendSpeechRecognizerRecognizeEvent() {
         accessToken: tokenObj.access_token
     };
 
-    avsHttp2.sendHttp2RequestToAVS(multiparts, avsAPItokens);
+    console.log("avsSendSpeechRecognizerRecognizeEvent");
+
+    var config = {
+        avsAPItokens: avsAPItokens,
+        response: {
+            storage: {
+                localFullPath: config.response.storage.localFullPath
+            }
+        }
+    };
+
+    avsHttp2.sendHttp2RequestToAVS(multiparts, config, function(error, data) {
+        if(error) {
+            console.log("Error: avsHttp2.sendHttp2RequestToAVS " + error);
+            return;
+        }
+        callback(null, data);
+    });
 
 }
 

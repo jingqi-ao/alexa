@@ -40,9 +40,15 @@ import javax.net.ssl.TrustManagerFactory;
 import javax.net.ssl.X509TrustManager;
 import java.security.cert.CertificateException;
 
+import okhttp3.Headers;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
+
+import java.io.File;
 
 
 
@@ -50,6 +56,7 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String LOG_TAG = "AudioRecordTest";
     private static String mFileName = null;
+    private static String mAVSResponseAudioFileName = null;
 
     private RecordButton mRecordButton = null;
     private MediaRecorder mRecorder = null;
@@ -94,6 +101,8 @@ public class MainActivity extends AppCompatActivity {
         mFileName += "/audiorecordtest.3gp";
         //mFileName += "/audiorecordtest.wav";
 
+        mAVSResponseAudioFileName = Environment.getExternalStorageDirectory().getAbsolutePath() + "/avsResponseAudio.wav";
+
         Log.e(LOG_TAG, "mFileName: " + mFileName);
 
         LinearLayout ll = new LinearLayout(this);
@@ -133,7 +142,10 @@ public class MainActivity extends AppCompatActivity {
     private void startPlaying() {
         mPlayer = new MediaPlayer();
         try {
-            mPlayer.setDataSource(mFileName);
+            //mPlayer.setDataSource(mFileName);
+
+            //mPlayer.setDataSource(Environment.getExternalStorageDirectory().getAbsolutePath() + "/test3.wav");
+            mPlayer.setDataSource(mAVSResponseAudioFileName);
             mPlayer.prepare();
             mPlayer.start();
         } catch (IOException e) {
@@ -181,7 +193,11 @@ public class MainActivity extends AppCompatActivity {
         HTTPRequestTask httpRequestTask = new HTTPRequestTask();
 
         //String urlString = "http://192.168.1.185:4000/";
-        String urlString = "https://192.168.1.185:8443/";
+        //String urlString = "http://192.168.1.185:4000/events";
+
+        //String urlString = "https://192.168.1.185:8443/";
+        String urlString = "https://192.168.1.185:8443/events";
+
         HTTPRequest httpRequest = null;
         try {
             httpRequest = new HTTPRequest(new URL(urlString));
@@ -334,8 +350,28 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected Long doInBackground(HTTPRequest... httpRequests) {
 
+            /*
             Request request = new Request.Builder()
                     .url(httpRequests[0].getURL())
+                    .build();
+            */
+
+            Headers audioPartHeader = new Headers.Builder()
+                    .add("Content-Disposition", "form-data;name=\"audio\"")
+                    .add("Content-Type", "application/octet-stream")
+                    .build();
+
+
+            RequestBody requestBody = new MultipartBody.Builder()
+                    .setType(MultipartBody.FORM)
+                    .addFormDataPart("metadata", "Metadata")
+                    .addFormDataPart("audio", "testaudio.3pg",
+                            RequestBody.create(MediaType.parse("audo"), new File(mFileName)))
+                    .build();
+
+            Request request = new Request.Builder()
+                    .url(httpRequests[0].getURL())
+                    .post(requestBody)
                     .build();
 
             Response response = null;
@@ -347,7 +383,20 @@ public class MainActivity extends AppCompatActivity {
 
             if(response != null) {
                 try {
-                    Log.d(LOG_TAG, "Reponse is: " + response.body().string());
+                    //Log.d(LOG_TAG, "Reponse is: " + response.body().string());
+                    Log.d(LOG_TAG, "Reponse is here! ");
+                    InputStream responseInputStream = response.body().byteStream();
+
+                    FileOutputStream fileOutputStream = new FileOutputStream(mAVSResponseAudioFileName);
+
+                    byte[] buf = new byte[512];
+                    int num = 0;
+                    while ((num = responseInputStream.read(buf)) != -1) {
+                        fileOutputStream.write(buf, 0, num);
+                    }
+
+                    Log.d(LOG_TAG, "File Writing is done! ");
+
                 } catch (IOException e) {
                     e.printStackTrace();
                 }

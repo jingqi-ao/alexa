@@ -33,8 +33,19 @@ module.exports = function() {
         // avsAPItokens: {
         //     accessToken: STRING
         // }
+        // config: {
+        //     avsAPItokens: {
+        //         accessToken: STRING
+        //     },
+        //     response: {
+        //         storage: {
+        //             localFullPath: STRING
+        //         }
+        //     }
+        // }
 
-        sendHttp2RequestToAVS: function(multiparts, avsAPItokens) {
+
+        sendHttp2RequestToAVS: function(multiparts, config, callback) {
 
             var boundaryDelimiter = "--" + mutlipartBoundary + "\r\n";
             var endBoundaryDelimiter = "--" + mutlipartBoundary + "--" + "\r\n";
@@ -66,13 +77,14 @@ module.exports = function() {
                 jsonPartBuffer.length + audioPartHeadBuffer.length + audioPartBodyBuffer.length + endDelimiterBuffer.length);
 
             // Send request
+            var accessToken = config.avsAPItokens.accessToken;
             var reqOptions = {
                 hostname: avsAPIHostName,
                 port: 443,
                 path: avsAPIEventsEndpoint,
                 method: 'POST',
                 headers: {
-                    'Authorization': 'Bearer ' + avsAPItokens.accessToken,
+                    'Authorization': 'Bearer ' + accessToken,
                     "Content-type": "multipart/form-data; boundary="+mutlipartBoundary
                 }
             };
@@ -144,8 +156,16 @@ module.exports = function() {
                         console.log("testString");
                         //console.log(testString);
 
-                        fs.writeFileSync('/home/jao/wavs/test3.wav', partBuffers.partBodyBuffer, 'binary');
+                        var localFullPath = config.response.storage.localFullPath;
 
+                        if(localFullPath) {
+                            fs.writeFileSync(localFullPath, partBuffers.partBodyBuffer, 'binary');
+                        }
+
+                        callback(null, {
+                            directive: null,
+                            audioBuffer: partBuffers.partBodyBuffer
+                        });
                     }
 
                 });
