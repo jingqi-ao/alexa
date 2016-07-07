@@ -51,59 +51,36 @@ import okhttp3.Response;
 import java.io.File;
 
 
-
 public class MainActivity extends AppCompatActivity {
 
-    private static final String LOG_TAG = "AudioRecordTest";
-    private static String mFileName = null;
-    private static String mAVSResponseAudioFileName = null;
+    private static final String LOG_TAG = "AlexaAndroidClient";
 
+    // UI
     private RecordButton mRecordButton = null;
-    private MediaRecorder mRecorder = null;
-
     private PlayButton   mPlayButton = null;
-    private MediaPlayer   mPlayer = null;
 
-    private int AUDIO_SOURCE = MediaRecorder.AudioSource.MIC;
-    // Alexa Voice Service requirements: 16bit Linear PCM, 16kHz sample rate, Single channel, Little endian byte order
-    // https://developer.amazon.com/public/solutions/alexa/alexa-voice-service/reference/speechrecognizer
-    private int AUDIO_FORMAT = AudioFormat.ENCODING_PCM_16BIT;
-    private int AUDIO_SAMPLE_RATE_IN_HZ = 16000;
-    private int AUDIO_CHANNEL_CONFIG = AudioFormat.CHANNEL_IN_MONO;
+    // Audio recorder
+    AudioRecorder mAudioRecorder;
+    // Event audio is the audio from client (user speaks)
+    private String mEventAudioFilePath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/avsEventAudio.3pg";
 
-    private int bufferSizeInBytes = AudioRecord.getMinBufferSize(AUDIO_SAMPLE_RATE_IN_HZ, AUDIO_CHANNEL_CONFIG, AUDIO_FORMAT);
-
-    private AudioRecord mAudioRecord = null;
-
-    byte mAudioRecordBuffer[] = new byte[bufferSizeInBytes];
-
-    private boolean mIsRecording = false;
-
-    private Thread mRecordingThread = null;
-
-    OkHttpClient okHttpClient = null;
+    // Audio player
+    AudioPlayer mAudioPlayer;
+    private String mAVSResponseAudioFilePath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/avsResponseAudio.wav";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
 
-        /*
-        mAudioRecord = new AudioRecord(AUDIO_SOURCE,
-                AUDIO_SAMPLE_RATE_IN_HZ,
-                AUDIO_CHANNEL_CONFIG,
-                AUDIO_FORMAT,
-                bufferSizeInBytes);
-        */
-
-        // /storage/emulated/0/FILENAME --> /mnt/shell/emulated/0
-        mFileName = Environment.getExternalStorageDirectory().getAbsolutePath();
-        mFileName += "/audiorecordtest.3gp";
-        //mFileName += "/audiorecordtest.wav";
-
-        mAVSResponseAudioFileName = Environment.getExternalStorageDirectory().getAbsolutePath() + "/avsResponseAudio.wav";
-
-        Log.e(LOG_TAG, "mFileName: " + mFileName);
+        mAudioRecorder = new AudioRecorder(LOG_TAG, mEventAudioFilePath);
+        mAudioPlayer = new AudioPlayer(LOG_TAG, mAVSResponseAudioFilePath);
+        mAudioPlayer.setOnStoppoedListener(new AudioPlayer.OnStoppedListener() {
+            @Override
+            public void onStopped() {
+                Log.d(LOG_TAG, "mAudioPlayer.onStopped");
+            }
+        });
 
         LinearLayout ll = new LinearLayout(this);
         mRecordButton = new RecordButton(this);
@@ -119,8 +96,11 @@ public class MainActivity extends AppCompatActivity {
                         ViewGroup.LayoutParams.WRAP_CONTENT,
                         0));
         setContentView(ll);
-
         //setContentView(R.layout.activity_main);
+
+        Log.d(LOG_TAG, "MainActivity.onCreate() done");
+        Log.d(LOG_TAG, "mEventAudioFilePath: " + mEventAudioFilePath);
+        Log.d(LOG_TAG, "mAVSResponseAudioFilePath: " + mAVSResponseAudioFilePath);
     }
 
     private void onRecord(boolean start) {
@@ -133,61 +113,19 @@ public class MainActivity extends AppCompatActivity {
 
     private void onPlay(boolean start) {
         if (start) {
-            startPlaying();
+            mAudioPlayer.startPlaying();
         } else {
-            stopPlaying();
+            mAudioPlayer.stopPlaying();
         }
     }
-
-    private void startPlaying() {
-        mPlayer = new MediaPlayer();
-        try {
-            //mPlayer.setDataSource(mFileName);
-
-            //mPlayer.setDataSource(Environment.getExternalStorageDirectory().getAbsolutePath() + "/test3.wav");
-            mPlayer.setDataSource(mAVSResponseAudioFileName);
-            mPlayer.prepare();
-            mPlayer.start();
-        } catch (IOException e) {
-            Log.e(LOG_TAG, "prepare() failed");
-        }
-    }
-
-    private void stopPlaying() {
-        mPlayer.release();
-        mPlayer = null;
-    }
-
 
     private void startRecording() {
-        mRecorder = new MediaRecorder();
-
-        mRecorder.setAudioSource(MediaRecorder.AudioSource.MIC);
-
-        // Alexa Voice Service requirements: 16bit Linear PCM, 16kHz sample rate, Single channel, Little endian byte order
-        // https://developer.amazon.com/public/solutions/alexa/alexa-voice-service/reference/speechrecognizer
-        mRecorder.setAudioEncodingBitRate(16);
-        mRecorder.setAudioSamplingRate(16000);
-        mRecorder.setAudioChannels(1);
-
-
-        mRecorder.setOutputFormat(MediaRecorder.OutputFormat.THREE_GPP);
-        mRecorder.setOutputFile(mFileName);
-        mRecorder.setAudioEncoder(MediaRecorder.AudioEncoder.AMR_WB);
-
-        try {
-            mRecorder.prepare();
-        } catch (IOException e) {
-            Log.e(LOG_TAG, "prepare() failed");
-        }
-
-        mRecorder.start();
+        mAudioRecorder.startRecord();
     }
 
     private void stopRecording() {
-        mRecorder.stop();
-        mRecorder.release();
-        mRecorder = null;
+
+        mAudioRecorder.stopRecord();
 
         // Start sending audio file to companison site server
         HTTPRequestTask httpRequestTask = new HTTPRequestTask();
@@ -209,75 +147,9 @@ public class MainActivity extends AppCompatActivity {
             httpRequestTask.execute(httpRequest);
         }
 
-
     }
 
 
-
-/*
-    private void startRecording() {
-
-        //mAudioRecord.startRecording();
-        //mIsRecording = true;
-
-        // Use a new thread to perform record
-        mRecordingThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-
-                FileOutputStream fileOutputStream = null;
-                try {
-                    fileOutputStream = new FileOutputStream(mFileName);
-                } catch (FileNotFoundException e) {
-                    e.printStackTrace();
-                }
-
-                short[] mBuffer = new short[bufferSizeInBytes/2];
-
-                mAudioRecord.startRecording();
-                mIsRecording = true;
-
-                while(mIsRecording) {
-                    int numOfShorts = mAudioRecord.read(mBuffer, 0, mBuffer.length);
-
-                    if(numOfShorts < 0) {
-                        Log.e(LOG_TAG, "mAudioRecord.read failed");
-                    }
-
-                    try {
-                        fileOutputStream.write(mAudioRecordBuffer, 0, bufferSizeInBytes);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-
-                }
-
-                try {
-                    fileOutputStream.flush();
-                    fileOutputStream.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-
-            }
-        });
-
-        // Start the new thread
-        mRecordingThread.start();
-
-    }
-
-    private void stopRecording() {
-
-        mIsRecording = false;
-
-        mAudioRecord.stop();
-        mAudioRecord.release();
-        mAudioRecord = null;
-
-        mRecordingThread = null;
-    }
-*/
     class RecordButton extends Button {
         boolean mStartRecording = true;
 
@@ -350,12 +222,6 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected Long doInBackground(HTTPRequest... httpRequests) {
 
-            /*
-            Request request = new Request.Builder()
-                    .url(httpRequests[0].getURL())
-                    .build();
-            */
-
             Headers audioPartHeader = new Headers.Builder()
                     .add("Content-Disposition", "form-data;name=\"audio\"")
                     .add("Content-Type", "application/octet-stream")
@@ -366,7 +232,7 @@ public class MainActivity extends AppCompatActivity {
                     .setType(MultipartBody.FORM)
                     .addFormDataPart("metadata", "Metadata")
                     .addFormDataPart("audio", "testaudio.3pg",
-                            RequestBody.create(MediaType.parse("audo"), new File(mFileName)))
+                            RequestBody.create(MediaType.parse("audo"), new File(mEventAudioFilePath)))
                     .build();
 
             Request request = new Request.Builder()
@@ -387,7 +253,7 @@ public class MainActivity extends AppCompatActivity {
                     Log.d(LOG_TAG, "Reponse is here! ");
                     InputStream responseInputStream = response.body().byteStream();
 
-                    FileOutputStream fileOutputStream = new FileOutputStream(mAVSResponseAudioFileName);
+                    FileOutputStream fileOutputStream = new FileOutputStream(mAVSResponseAudioFilePath);
 
                     byte[] buf = new byte[512];
                     int num = 0;
@@ -405,6 +271,12 @@ public class MainActivity extends AppCompatActivity {
             //Log.d(LOG_TAG, "URL is: " + httpRequests[0].getURL().toString());
             return null;
         }
+
+        @Override
+        protected void onPostExecute(Long result) {
+            mAudioPlayer.startPlaying();
+        }
+
     }
 
 
