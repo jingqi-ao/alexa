@@ -6,6 +6,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
 import android.app.Activity;
+import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.os.Bundle;
 import android.os.Environment;
@@ -18,6 +19,7 @@ import android.util.Log;
 import android.media.MediaRecorder;
 import android.media.MediaPlayer;
 import android.media.AudioRecord;
+import android.widget.TextView;
 
 import java.io.BufferedInputStream;
 import java.io.FileNotFoundException;
@@ -56,8 +58,8 @@ public class MainActivity extends AppCompatActivity {
     private static final String LOG_TAG = "AlexaAndroidClient";
 
     // UI
-    private RecordButton mRecordButton = null;
-    private PlayButton   mPlayButton = null;
+    private TextView mTVStatus = null;
+    private TextView mTVHints = null;
 
     // Audio recorder
     AudioRecorder mAudioRecorder;
@@ -67,6 +69,21 @@ public class MainActivity extends AppCompatActivity {
     // Audio player
     AudioPlayer mAudioPlayer;
     private String mAVSResponseAudioFilePath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/avsResponseAudio.wav";
+
+    // Status
+    private static final String STATUS_READY = "status_ready";
+    private static final String STATUS_RECORDING = "status_recording";
+    private static final String STATUS_SEND_DATA_TO_CLOUD = "status_send_data_to_cloud";
+    private static final String STATUS_RECEIVE_DATA_FROM_CLOUD = "status_receive_data_from_cloud";
+    private static final String STATUS_PLAYING = "status_playing";
+
+    String mStatus = STATUS_READY;
+
+    // Cloud server
+    private String mCloudEndpoint = "https://192.168.1.185:8443";
+
+    //private String mCloudEndpoint = "http://192.168.1.185:4000/";
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -78,45 +95,67 @@ public class MainActivity extends AppCompatActivity {
         mAudioPlayer.setOnStoppoedListener(new AudioPlayer.OnStoppedListener() {
             @Override
             public void onStopped() {
+                mStatus = STATUS_READY;
+                updateUIBasedonStatus();
                 Log.d(LOG_TAG, "mAudioPlayer.onStopped");
             }
         });
 
-        LinearLayout ll = new LinearLayout(this);
-        mRecordButton = new RecordButton(this);
-        ll.addView(mRecordButton,
-                new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                        0));
-        mPlayButton = new PlayButton(this);
-        ll.addView(mPlayButton,
-                new LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                        0));
-        setContentView(ll);
-        //setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_main);
+
+        ImageButton imgBtnRecord = (ImageButton) findViewById(R.id.imgBtnRecord);
+
+        imgBtnRecord.setOnClickListener(new OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(mStatus == STATUS_READY) {
+                    // Start recording
+                    mStatus = STATUS_RECORDING;
+                    updateUIBasedonStatus();
+                    startRecording();
+                } else {
+                    // Stop recording
+                    stopRecording();
+                }
+            }
+        });
+
+        mTVStatus = (TextView) findViewById(R.id.tvStatus);
+
+        mTVHints = (TextView) findViewById(R.id.tvHints);
+
+        updateUIBasedonStatus();
 
         Log.d(LOG_TAG, "MainActivity.onCreate() done");
         Log.d(LOG_TAG, "mEventAudioFilePath: " + mEventAudioFilePath);
         Log.d(LOG_TAG, "mAVSResponseAudioFilePath: " + mAVSResponseAudioFilePath);
     }
 
-    private void onRecord(boolean start) {
-        if (start) {
-            startRecording();
-        } else {
-            stopRecording();
-        }
-    }
+    private void updateUIBasedonStatus() {
 
-    private void onPlay(boolean start) {
-        if (start) {
-            mAudioPlayer.startPlaying();
-        } else {
-            mAudioPlayer.stopPlaying();
+        switch(mStatus) {
+            case STATUS_RECORDING:
+                mTVStatus.setText("Recording...");
+                mTVHints.setText("Press the microphone button to finish recording.");
+                break;
+            case STATUS_SEND_DATA_TO_CLOUD:
+                mTVStatus.setText("Sending data to cloud...");
+                mTVHints.setText("Data is sent to cloud. It is transcoded to .wav format for Alexa Voice Service.");
+                break;
+            case STATUS_RECEIVE_DATA_FROM_CLOUD:
+                mTVStatus.setText("Receiving data from cloud...");
+                mTVHints.setText("The Alexa response will be automatically played after the data download is completed.");
+                break;
+            case STATUS_PLAYING:
+                mTVStatus.setText("Playing...");
+                mTVHints.setText("Do you like the answer? :)");
+                break;
+            default: // STATUS_READY
+                mTVStatus.setText("Ready for your voice.");
+                mTVHints.setText("Use Alexa to initiate the command. For example, Alexas, what's the weather in San Francsico? or Alexa, wikipedia San Francisco. Press the microphone button to start.");
+                break;
         }
+
     }
 
     private void startRecording() {
@@ -127,14 +166,14 @@ public class MainActivity extends AppCompatActivity {
 
         mAudioRecorder.stopRecord();
 
-        // Start sending audio file to companison site server
         HTTPRequestTask httpRequestTask = new HTTPRequestTask();
 
-        //String urlString = "http://192.168.1.185:4000/";
-        //String urlString = "http://192.168.1.185:4000/events";
+        mStatus = STATUS_SEND_DATA_TO_CLOUD;
+        updateUIBasedonStatus();
 
-        //String urlString = "https://192.168.1.185:8443/";
-        String urlString = "https://192.168.1.185:8443/events";
+        // Start sending audio file to companison site server
+
+        String urlString = mCloudEndpoint + "/events";
 
         HTTPRequest httpRequest = null;
         try {
@@ -149,58 +188,6 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-
-    class RecordButton extends Button {
-        boolean mStartRecording = true;
-
-        OnClickListener clicker = new OnClickListener() {
-            public void onClick(View v) {
-                onRecord(mStartRecording);
-                if (mStartRecording) {
-                    setText("Stop recording");
-                } else {
-                    setText("Start recording");
-                }
-                mStartRecording = !mStartRecording;
-            }
-        };
-
-        public RecordButton(Context ctx) {
-            super(ctx);
-            setText("Start recording");
-            setOnClickListener(clicker);
-        }
-    }
-
-    class PlayButton extends Button {
-        boolean mStartPlaying = true;
-
-        OnClickListener clicker = new OnClickListener() {
-            public void onClick(View v) {
-                onPlay(mStartPlaying);
-                if (mStartPlaying) {
-                    setText("Stop playing");
-                } else {
-                    setText("Start playing");
-                }
-                mStartPlaying = !mStartPlaying;
-            }
-        };
-
-        public PlayButton(Context ctx) {
-            super(ctx);
-            setText("Start playing");
-            setOnClickListener(clicker);
-        }
-    }
-
-    /*
-    public AudioRecordTest() {
-        mFileName = Environment.getExternalStorageDirectory().getAbsolutePath();
-        mFileName += "/audiorecordtest.3gp";
-    }
-    */
-
     private class HTTPRequest {
 
         private URL url;
@@ -214,7 +201,7 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private class HTTPRequestTask extends AsyncTask<HTTPRequest, Integer, Long> {
+    private class HTTPRequestTask extends AsyncTask<HTTPRequest, String, Long> {
 
         //OkHttpClient client = new OkHttpClient();
         OkHttpClient client = InsecureOkHttpClient.getInsecureOkHttpClient();
@@ -249,6 +236,11 @@ public class MainActivity extends AppCompatActivity {
 
             if(response != null) {
                 try {
+
+                    mStatus = STATUS_RECEIVE_DATA_FROM_CLOUD;
+                    //updateUIBasedonStatus();
+                    publishProgress(null);
+
                     //Log.d(LOG_TAG, "Reponse is: " + response.body().string());
                     Log.d(LOG_TAG, "Reponse is here! ");
                     InputStream responseInputStream = response.body().byteStream();
@@ -272,8 +264,17 @@ public class MainActivity extends AppCompatActivity {
             return null;
         }
 
+
+        protected void onProgressUpdate(String... status) {
+            updateUIBasedonStatus();
+        }
+
         @Override
         protected void onPostExecute(Long result) {
+
+            mStatus = STATUS_PLAYING;
+            updateUIBasedonStatus();
+
             mAudioPlayer.startPlaying();
         }
 
