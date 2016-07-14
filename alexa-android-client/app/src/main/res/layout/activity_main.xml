@@ -34,8 +34,10 @@
         android:layout_width="128dp"
         android:layout_height="128dp"
         android:id="@+id/imgBtnRecord"
-        android:background="@drawable/microphone"
         android:layout_alignParentBottom="true"
-        android:layout_centerHorizontal="true" />
+        android:layout_centerHorizontal="true"
+        android:focusableInTouchMode="false"
+        android:forceHasOverlappingRendering="true"
+        android:background="@drawable/microphone_2" />
 
 </RelativeLayout>

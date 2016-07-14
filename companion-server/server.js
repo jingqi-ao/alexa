@@ -149,7 +149,7 @@ var redirectURL = "https://localhost:8443/auth/amazonresponse";
 
 
 var querystring = require('querystring');
-app.get('/auth/login', function (req, res) {
+app.get('/auth/amazonauthorize', function (req, res) {
 
     console.log("json");
     var scopeDataJSONString = JSON.stringify(scopeData);
@@ -160,6 +160,9 @@ app.get('/auth/login', function (req, res) {
 
     console.log("scopeDataJSONStringEscaped");
     console.log(scopeDataJSONStringEscaped);
+
+    console.log("req.query.sessionId");
+    console.log(req.query.sessionId);
 
     var queryObj = {
         client_id: clientId,
@@ -172,12 +175,13 @@ app.get('/auth/login', function (req, res) {
     console.log("queryObj");
     console.log(queryObj);
 
-
+    // To do: use "state=SESSION_ID" to track user (Android client) with accessToken
     var queryString = "client_id=" + clientId + "&" +
         "scope=" + querystring.escape(scope) + "&" +
         "scope_data=" + querystring.escape(JSON.stringify(scopeData)) + "&" +
         "response_type=" + responseType + "&" +
-        "redirect_uri=" + querystring.escape(redirectURL);
+        "redirect_uri=" + querystring.escape(redirectURL) + "&" +
+        "state=abcdefg";
 
     console.log("queryObj");
     console.log(queryObj);
@@ -203,6 +207,10 @@ app.get('/auth/amazonresponse', function(req, res) {
 
     var code = req.query.code;
     var scope = req.query.scope;
+    var state = req.query.state;
+
+    console.log("state");
+    console.log(state);
 
     // code is returned
     if(code) {
@@ -256,10 +264,38 @@ function getTokens(code, client_id, client_secret, redirect_uri, callback) {
         form: formObj}, callback);
 }
 
+// Get user profile
+// Need extra scope (scope other than alexa:all)
+/*
+function getUserProfile(accessToken, callback) {
+
+    request.get({
+        url:'https://api.amazon.com/user/profile',
+        headers: {
+            'Authorization': 'Bearer ' + accessToken
+        }
+    }, callback);
+
+}
+*/
+
 // AVS
 function testFunc() {
-    avsCreateDownChannelStream();
-    setTimeout(avsSendSynchronizeStateEvent, 10000);
+
+    getUserProfile(tokenObj.access_token, function(error,httpResponse,body) {
+        if(error) {
+            console.log("GetUserProfile error" + error);
+            return;
+        }
+        console.log("GetUserProfile");
+        console.log(body);
+    });
+
+    //setTimeout(avsCreateDownChannelStream, 5000)
+    //avsCreateDownChannelStream();
+
+    //setTimeout(avsSendSynchronizeStateEvent, 10000);
+
     //setTimeout(avsSendSpeechRecognizerRecognizeEvent, 20000);
 }
 

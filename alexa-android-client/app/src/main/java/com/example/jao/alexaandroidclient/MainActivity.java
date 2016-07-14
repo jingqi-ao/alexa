@@ -1,11 +1,17 @@
 package com.example.jao.alexaandroidclient;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.media.AudioFormat;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
 import android.app.Activity;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.os.Bundle;
@@ -51,6 +57,7 @@ import okhttp3.RequestBody;
 import okhttp3.Response;
 
 import java.io.File;
+import java.util.UUID;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -69,6 +76,10 @@ public class MainActivity extends AppCompatActivity {
     // Audio player
     AudioPlayer mAudioPlayer;
     private String mAVSResponseAudioFilePath = Environment.getExternalStorageDirectory().getAbsolutePath() + "/avsResponseAudio.wav";
+
+    // Client Session
+    private String mSessionId = null;
+    private String PREFERENCE_SESSION = "preference_session";
 
     // Status
     private static final String STATUS_READY = "status_ready";
@@ -129,6 +140,59 @@ public class MainActivity extends AppCompatActivity {
         Log.d(LOG_TAG, "MainActivity.onCreate() done");
         Log.d(LOG_TAG, "mEventAudioFilePath: " + mEventAudioFilePath);
         Log.d(LOG_TAG, "mAVSResponseAudioFilePath: " + mAVSResponseAudioFilePath);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        // Restore sessionId
+        SharedPreferences session = getSharedPreferences(PREFERENCE_SESSION, 0);
+        mSessionId = session.getString("sessionId", null);
+
+        if(mSessionId != null) {
+            Log.d(LOG_TAG, "onResume: sessionId" + mSessionId);
+        } else {
+            Log.d(LOG_TAG, "onResume: no sessionId");
+        }
+    }
+
+    // Handle menu
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.nav_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle item selection
+        switch (item.getItemId()) {
+            case R.id.navmenu_amazonauth:
+                openSession();
+                return true;
+            default:
+                return super.onOptionsItemSelected(item);
+        }
+    }
+
+    // Handle Amazon Authorization
+    private void openSession() {
+        String uuid = UUID.randomUUID().toString();
+        Log.d(LOG_TAG, "openSession: " + uuid);
+
+        mSessionId = uuid;
+
+        SharedPreferences session = getSharedPreferences(PREFERENCE_SESSION, 0);
+        SharedPreferences.Editor editor = session.edit();
+        editor.putString("sessionId", mSessionId);
+
+        // Commit the edits!
+        editor.commit();
+
+        Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(mCloudEndpoint + "/auth/amazonauthorize" + "?sessionId=" + mSessionId));
+        startActivity(browserIntent);
     }
 
     private void updateUIBasedonStatus() {
