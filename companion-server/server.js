@@ -129,6 +129,41 @@ avsConfig = require('./avs.json');
 var clientId = avsConfig.clientId;
 var clientSecret = avsConfig.clientSecret;
 
+
+var RouterAmazonAuth = require('./modules/RouterAmazonAuth.js');
+
+
+var Sessions = require('./modules/Sessions.js');
+var sessions = Sessions({
+    clientId: avsConfig.clientId,
+    clientSecret: avsConfig.clientSecret
+});
+
+setInterval(function(){
+    sessions.checkSessions();
+}, 10*1000);
+
+var routerAmazonAuth = RouterAmazonAuth({
+    amazonAuthRedirectURL: "https://localhost:8443/auth/amazonauthredirect",
+    clientId: clientId,
+    clientSecret: clientSecret,
+    obtainTokenCallback: function(error, data) {
+        if(error) {
+            console.log("error");
+            console.log(error);
+            return;
+        }
+        console.log("data");
+        console.log(data);
+
+        sessions.addSession(data.sessionId, data.tokens);
+
+    }
+});
+
+app.use('/auth', routerAmazonAuth);
+
+/*
 console.log("avsConfig");
 console.log(avsConfig);
 
@@ -263,6 +298,7 @@ function getTokens(code, client_id, client_secret, redirect_uri, callback) {
         url:'https://api.amazon.com/auth/o2/token',
         form: formObj}, callback);
 }
+*/
 
 // Get user profile
 // Need extra scope (scope other than alexa:all)
