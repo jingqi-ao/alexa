@@ -79,6 +79,7 @@ public class MainActivity extends AppCompatActivity {
 
     // Client Session
     private String mSessionId = null;
+
     private String PREFERENCE_SESSION = "preference_session";
 
     // Status
@@ -149,6 +150,10 @@ public class MainActivity extends AppCompatActivity {
         // Restore sessionId
         SharedPreferences session = getSharedPreferences(PREFERENCE_SESSION, 0);
         mSessionId = session.getString("sessionId", null);
+
+        // TEST ONLY
+        mSessionId = "sessionId";
+        // TEST ONLY (END)
 
         if(mSessionId != null) {
             Log.d(LOG_TAG, "onResume: sessionId" + mSessionId);
@@ -237,11 +242,11 @@ public class MainActivity extends AppCompatActivity {
 
         // Start sending audio file to companison site server
 
-        String urlString = mCloudEndpoint + "/events";
+        String urlString = mCloudEndpoint + "/api/v1/events";
 
         HTTPRequest httpRequest = null;
         try {
-            httpRequest = new HTTPRequest(new URL(urlString));
+            httpRequest = new HTTPRequest(new URL(urlString), mSessionId);
         } catch (MalformedURLException e) {
             e.printStackTrace();
         }
@@ -255,13 +260,19 @@ public class MainActivity extends AppCompatActivity {
     private class HTTPRequest {
 
         private URL url;
+        private String sessionId;
 
-        HTTPRequest(URL url) {
+        HTTPRequest(URL url, String sessionId) {
             this.url = url;
+            this.sessionId = sessionId;
         }
 
         public URL getURL() {
             return this.url;
+        }
+
+        public String getSessionId() {
+            return this.sessionId;
         }
     }
 
@@ -281,6 +292,7 @@ public class MainActivity extends AppCompatActivity {
 
             RequestBody requestBody = new MultipartBody.Builder()
                     .setType(MultipartBody.FORM)
+                    .addFormDataPart("sessionId", httpRequests[0].getSessionId())
                     .addFormDataPart("metadata", "Metadata")
                     .addFormDataPart("audio", "testaudio.3pg",
                             RequestBody.create(MediaType.parse("audo"), new File(mEventAudioFilePath)))

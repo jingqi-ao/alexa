@@ -161,7 +161,7 @@ module.exports = function() {
                         //console.log(testString);
 
                         // TEST ONLY
-                        // fs.writeFileSync('/tmp/avsResponseTest.wav', partBuffers.partBodyBuffer, 'binary');
+                        fs.writeFileSync('/tmp/avsResponseTest.wav', partBuffers.partBodyBuffer, 'binary');
                         // TEST ONLY (END)
 
                         callback(null, {

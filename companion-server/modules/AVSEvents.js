@@ -1,11 +1,14 @@
 var uuid = require('node-uuid');
 
+var AVSHttp2 = require('./AVSHttp2.js');
+var avsHttp2 = AVSHttp2();
+
 module.exports = function AVSEvents() {
 
-    return {
+    var AVSEvents = function() {
 
         // The current context is fixed.
-        generateContextJSON: function(){
+        this.generateContextJSON = function(){
 
             var ctx = [
                 {
@@ -54,9 +57,9 @@ module.exports = function AVSEvents() {
 
             return ctx;
 
-        }, // generateContextJSON()
+        }; // generateContextJSON()
 
-        generateEventJSON: function(eventType) {
+        this.generateEventJSON = function(eventType) {
 
             if(eventType === "SpeechRecognizer.Recognize") {
                 return {
@@ -85,15 +88,17 @@ module.exports = function AVSEvents() {
                 }
             }
 
-        }, // generateEventJSON()
+        }; // generateEventJSON()
 
-        sendEventToAVS: function(eventParam, accessToken, callback) {
+        this.sendEventToAVS = function(eventParam, accessToken, callback) {
+
+            var that = this;
 
             var eventType = eventParam.eventType;
             var audioBuffer = eventParam.audioBuffer;
 
-            var ctx = avsEvents.generateContextJSON();
-            var evt = avsEvents.generateEventJSON("SpeechRecognizer.Recognize");
+            var ctx = that.generateContextJSON();
+            var evt = that.generateEventJSON("SpeechRecognizer.Recognize");
 
             var multiparts = {
                 jsonPart: {
@@ -116,8 +121,11 @@ module.exports = function AVSEvents() {
                 callback(null, data);
             });
 
-        } // sendEventToAVS()
+        }; // sendEventToAVS()
+
 
     }
+
+    return new AVSEvents();
 
 }

@@ -31,6 +31,7 @@ var formidable = require('formidable');
 var Transcoder = require("./Transcoder.js");
 var transcoder = Transcoder();
 
+/*
 app.post('/events', function(req, res) {
 
     console.log(req.get('Content-Type'));
@@ -121,6 +122,7 @@ app.post('/events', function(req, res) {
     });
 
 })
+*/
 
 
 // Load avs.json
@@ -132,6 +134,8 @@ var clientSecret = avsConfig.clientSecret;
 
 var RouterAmazonAuth = require('./modules/RouterAmazonAuth.js');
 
+var AVSInit = require('./modules/AVSInit.js');
+var avsInit = AVSInit();
 
 var Sessions = require('./modules/Sessions.js');
 var sessions = Sessions({
@@ -141,7 +145,7 @@ var sessions = Sessions({
 
 setInterval(function(){
     sessions.checkSessions();
-}, 10*1000);
+}, 15*60*1000);
 
 var routerAmazonAuth = RouterAmazonAuth({
     amazonAuthRedirectURL: "https://localhost:8443/auth/amazonauthredirect",
@@ -158,10 +162,30 @@ var routerAmazonAuth = RouterAmazonAuth({
 
         sessions.addSession(data.sessionId, data.tokens);
 
+        avsInit.initConnectionWithAVS({
+            accessToken: data.tokens.access_token
+        }, function(error, data) {
+            if(error) {
+                console.log("error");
+                console.log(error);
+                return;
+            }
+            console.log("data");
+            console.log(data);
+        });
+
     }
+
 });
 
 app.use('/auth', routerAmazonAuth);
+
+var RouterEvents = require('./modules/RouterEvents.js');
+var routerEvents = RouterEvents({
+    sessions: sessions
+});
+
+app.use('/api/v1/events', routerEvents);
 
 /*
 console.log("avsConfig");

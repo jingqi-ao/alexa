@@ -166,7 +166,7 @@ module.exports = function(options)  {
             return;
         }
 
-        res.statusCode(500).send('/amazonauthredirect failed');
+        res.status(500).send('/amazonauthredirect failed');
 
     }); // router.get('/amazonauthredirect', ...)
 

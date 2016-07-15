@@ -48,6 +48,10 @@ module.exports = function(options) {
             delete this.sessions[sessionId];
         };
 
+        this.getSession = function(sessionId) {
+            return this.sessions[sessionId];
+        }
+
         // This is an ugly implemention of refreshing tokens
         // Could fight for CPU with AVS process
         // Should use database and dedicate service for this
