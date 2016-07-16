@@ -84,9 +84,13 @@ app.post('/api/v1/transcode', function (req, res) {
         transcoder.threeGPPtoWav(threeGPPFileFullPath, wavFileFullPath);
 
         // Read .wav file
-        var wavFileBuffer = fs.readFileSync(wavFileFullPath, 'binary');
+        var wavFileBuffer = fs.readFileSync(wavFileFullPath);
 
         //fs.writeFileSync('/tmp/alexa/onServer.wav', wavFileBuffer, 'binary');
+
+        console.log("check check");
+        console.log(typeof wavFileBuffer);
+        console.log(wavFileBuffer.length);
 
         res.status(200).send(wavFileBuffer);
 

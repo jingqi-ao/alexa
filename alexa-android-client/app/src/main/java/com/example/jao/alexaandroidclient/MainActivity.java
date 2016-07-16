@@ -94,7 +94,7 @@ public class MainActivity extends AppCompatActivity {
     // Cloud server
     private String mCloudEndpoint = "https://192.168.1.185:8443";
 
-    //private String mCloudEndpoint = "http://192.168.1.185:4000/";
+    //private String mCloudEndpoint = "http://192.168.1.185:8080";
 
 
     @Override
