@@ -8,9 +8,9 @@
         "body-parser": "1.15.2 ",
         "http2": "3.3.4",
         "node-uuid": "1.4.7",
-        "async": "2.0.0"
-    },
-    "devDependencies": {
-        "formidable": "1.0.17"
+        "async": "2.0.0",
+        "formidable": "1.0.17",
+        "fs-extra": "0.30.0",
+        "find-remove": "0.2.12"
     }
 }
