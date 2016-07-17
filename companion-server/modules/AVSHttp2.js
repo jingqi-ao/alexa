@@ -95,12 +95,15 @@ module.exports = function() {
 
             var resBuffers = [];
 
+            console.log("AVSHttp2.sendHttp2RequestToAVSv2 reqOptions");
+            console.log(reqOptions);
+
             var req = http2.request(reqOptions, function(res) {
 
-                console.log("res.statusCode");
+                console.log("sendHttp2RequestToAVSv2 res.statusCode");
                 console.log(res.statusCode);
 
-                console.log("res.headers");
+                console.log("sendHttp2RequestToAVSv2 res.headers");
                 console.log(typeof res.headers);
                 console.log(res.headers);
 
@@ -183,7 +186,60 @@ module.exports = function() {
 
             req.end();
 
+            console.log("AVSHttp2.sendHttp2RequestToAVSv2 req is sent");
+
         }, // sendHttp2RequestToAVSv2()
+
+        establishDownChannelStream: function(config, callback) {
+
+            var accessToken = config.avsAPItokens.accessToken;
+
+            var options = {
+                hostname: avsAPIHostName,
+                port: 443,
+                path: avsAPIDirectivesEndpoint,
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + accessToken
+                }
+            };
+
+            console.log("avsCreateDownChannelStream options");
+            console.log(options);
+
+            var req = http2.request(options, function(res) {
+
+                if(res.statusCode === 204) {
+                    console.log("avsPing succeeded.");
+                }
+
+                res.on('data', function(chunk) {
+                    console.log(chunk);
+                });
+
+                res.on('end', function() {
+                    console.log('No more data in response.')
+                });
+
+            });
+
+            req.on('socket', (socket) => {
+                console.log("establishDownChannelStream socket");
+                console.log(socket);
+                //console.log(`problem with request: ${e.message}`);
+            });
+
+            req.on('error', (e) => {
+                console.log(e);
+                //console.log(`problem with request: ${e.message}`);
+            });
+
+            req.end();
+
+
+        }, // establishDownChannelStream()
+
+        // Unused legacy code (will delete later)
 
         sendHttp2RequestToAVS: function(multiparts, config, callback) {
 
@@ -328,56 +384,7 @@ module.exports = function() {
 
         parseResponseFromAVS: function(responseBuffer) {
 
-        }, // parseResponseFromAVS()
-
-        establishDownChannelStream: function(config, callback) {
-
-            var accessToken = config.avsAPItokens.accessToken;
-
-            var options = {
-                hostname: avsAPIHostName,
-                port: 443,
-                path: avsAPIDirectivesEndpoint,
-                method: 'GET',
-                headers: {
-                    'Authorization': 'Bearer ' + accessToken
-                }
-            };
-
-            console.log("avsCreateDownChannelStream options");
-            console.log(options);
-
-            var req = http2.request(options, function(res) {
-
-                if(res.statusCode === 204) {
-                    console.log("avsPing succeeded.");
-                }
-
-                res.on('data', function(chunk) {
-                    console.log(chunk);
-                });
-
-                res.on('end', function() {
-                    console.log('No more data in response.')
-                });
-
-            });
-
-            req.on('socket', (socket) => {
-                console.log("establishDownChannelStream socket");
-                console.log(socket);
-                //console.log(`problem with request: ${e.message}`);
-            });
-
-            req.on('error', (e) => {
-                console.log(e);
-                //console.log(`problem with request: ${e.message}`);
-            });
-
-            req.end();
-
-
-        }
+        } // parseResponseFromAVS()
 
 
 

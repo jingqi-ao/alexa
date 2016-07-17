@@ -12,10 +12,22 @@ var querystring = require('querystring');
 module.exports = function(options)  {
 
     var scope="alexa:all";
+    var productId = options.productId;
 
+    /*
     var scopeData = {
         "alexa:all": {
             "productID": "alexa_android_client",
+            "productInstanceAttributes": {
+                "deviceSerialNumber": "bigboss"
+            }
+        }
+    };
+    */
+
+    var scopeData = {
+        "alexa:all": {
+            "productID": productId,
             "productInstanceAttributes": {
                 "deviceSerialNumber": "bigboss"
             }
@@ -118,7 +130,7 @@ module.exports = function(options)  {
         var scope = req.query.scope;
         var state = req.query.state;
 
-        var sessionId = req.query.sessionId ? req.query.sessionId : "sessionId";
+        var sessionId = req.query.state ? req.query.state : "sessionId";
 
         console.log("state");
         console.log(state);

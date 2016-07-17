@@ -195,6 +195,56 @@ module.exports = function(options) {
 
         }; // this.initConnectionWithAVS()
 
+        // Make a GET request to /ping every 5 minutes when the connection is idle
+        // Ref: https://developer.amazon.com/public/solutions/alexa/alexa-voice-service/docs/managing-an-http-2-connection
+        this.sendPingToAVS = function(accessToken, callback) {
+
+            var options = {
+                hostname: avsAPIHostName,
+                port: 443,
+                path: '/ping',
+                method: 'GET',
+                headers: {
+                    'Authorization': 'Bearer ' + accessToken
+                }
+            };
+
+            console.log("AVSInit.sendPingToAVS() options");
+            console.log(options);
+
+            var req = http2.request(options, function(res) {
+
+                console.log('AVSInit.sendPingToAVS() res.statusCode');
+                console.log(res.statusCode);
+
+                res.on('data', function(chunk) {
+                    console.log(chunk);
+                    var textChunk = chunk.toString('utf8');
+                    console.log(textChunk);
+                });
+
+                res.on('end', function() {
+                    console.log('AVSInit.sendPingToAVS() No more data in response.');
+                    callback(null);
+
+                });
+
+            });
+
+            req.on('error', (e) => {
+                console.log(e);
+                callback({
+                    statusCode: 500,
+                    error: e
+                });
+            });
+
+            req.end();
+
+            console.log("AVSInit.sendPingToAVS() req sent");
+
+        }; // this.sendPingToAVS()
+
     }
 
     return new AVSInit();

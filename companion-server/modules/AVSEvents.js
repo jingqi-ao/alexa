@@ -100,6 +100,18 @@ module.exports = function AVSEvents() {
             var ctx = that.generateContextJSON();
             var evt = that.generateEventJSON("SpeechRecognizer.Recognize");
 
+            console.log('AVSEvents.sendEventToAVS ctx');
+            console.log(ctx);
+
+            console.log('AVSEvents.sendEventToAVS evt');
+            console.log(evt);
+
+            console.log('AVSEvents.sendEventToAVS audioBuffer.length');
+            console.log(audioBuffer.length);
+
+            console.log('AVSEvents.sendEventToAVS accessToken');
+            console.log(accessToken);
+
             var multiparts = {
                 jsonPart: {
                     body: {
@@ -114,15 +126,15 @@ module.exports = function AVSEvents() {
 
             avsHttp2.sendHttp2RequestToAVSv2(multiparts, accessToken, function(error, data) {
                 if(error) {
-                    console.log("Error: avsHttp2.sendHttp2RequestToAVS " + error);
+                    console.log("Error: AVSEvents.sendEventToAVS failure: " + error);
                     callback(error);
                     return;
                 }
+                console.log('AVSEvents.sendEventToAVS avsHttp2 success');
                 callback(null, data);
             });
 
         }; // sendEventToAVS()
-
 
     }
 

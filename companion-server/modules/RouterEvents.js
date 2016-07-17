@@ -20,8 +20,7 @@ module.exports = function(options)  {
 
     var sessions = options.sessions;
     var transcoderFUllURL = options.transcoderFullURL;
-    //transcoderFUllURL = "https://52.201.229.195:9443/api/v1/transcode";
-    transcoderFUllURL = "https://192.168.1.185:9443/api/v1/transcode";
+    //transcoderFUllURL = "https://192.168.1.185:9443/api/v1/transcode";
 
     var router = express.Router();
 
@@ -89,8 +88,8 @@ module.exports = function(options)  {
                 fs.writeFileSync(wavFileFullPath, body, 'binary');
 
                 // Read .wav file into buffer
-                var wavFileBuffer = fs.readFileSync(wavFileFullPath);
-                //var wavFileBuffer = body;
+                //var wavFileBuffer = fs.readFileSync(wavFileFullPath);
+                var wavFileBuffer = body;
 
                 console.log("check check")
                 console.log(typeof body)

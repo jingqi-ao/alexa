@@ -152,7 +152,7 @@ public class MainActivity extends AppCompatActivity {
         mSessionId = session.getString("sessionId", null);
 
         // TEST ONLY
-        mSessionId = "sessionId";
+        //mSessionId = "sessionId";
         // TEST ONLY (END)
 
         if(mSessionId != null) {
@@ -196,7 +196,7 @@ public class MainActivity extends AppCompatActivity {
         // Commit the edits!
         editor.commit();
 
-        Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(mCloudEndpoint + "/auth/amazonauthorize" + "?sessionId=" + mSessionId));
+        Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(mCloudEndpoint + "/auth/amazonauth" + "?sessionId=" + mSessionId));
         startActivity(browserIntent);
     }
 

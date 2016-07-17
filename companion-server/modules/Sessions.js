@@ -14,8 +14,16 @@ module.exports = function(options) {
     var CONSTANT_1_DAY_IN_MILISEC = 24*60*60*1000;
     var CONSTANT_1_MIN_IN_MILISEC = 100*5*60*1000;
 
+    var CONSTANT_SESSION_TTL_IN_MILISEC = 14*24*60*60*1000; // 14 days
+    CONSTANT_SESSION_TTL_IN_MILISEC = 30*60*1000; // 30 min, test only
+
+    var CONSTANT_TOKEN_TTL_IN_MILISEC = 50*60*1000; // 50 min
+    CONSTANT_TOKEN_TTL_IN_MILISEC = 10*60*1000; // 10 min, test only
+
     var clientId = options.clientId;
     var clientSecret = options.clientSecret;
+
+    var avsInit = options.avsInit;
 
     var Sessions = function() {
 
@@ -24,23 +32,33 @@ module.exports = function(options) {
         this.addSession = function(sessionId, tokens) {
 
             var tokens = tokens;
-            tokens["expires_at"] = Date.now() + 3000*1000;
+            tokens["expires_at"] = Date.now() + CONSTANT_TOKEN_TTL_IN_MILISEC;
 
             this.sessions[sessionId] = {
                 createdAt: Date.now(),
+                expiredAt: Date.now() + CONSTANT_SESSION_TTL_IN_MILISEC,
                 tokens: tokens
             };
         };
 
-        // Currently the same implementation as "addSession"
-        this.updateSession = function(error, data) {
+        // Updating session only updates its tokens
+        this.updateSession = function(sessionId, tokens) {
 
-            if(error) {
-                this.deleteSession(error.sessionId);
-                return;
+            // Update tokens
+            var session = this.sessions[sessionId];
+
+            console.log("Session.updateSession oldSession");
+            console.log(session);
+
+            var tokens = tokens;
+            tokens["expires_at"] = Date.now() + CONSTANT_TOKEN_TTL_IN_MILISEC;
+
+            if(session) {
+                session.tokens = tokens;
             }
 
-            this.addSession(data.sessionId, data.tokens);
+            console.log("Session.updateSession newSession");
+            console.log(this.sessions[sessionId]);
 
         };
 
@@ -69,7 +87,7 @@ module.exports = function(options) {
                     return;
                 }
 
-                that.addSession(data.sessionId, data.tokens);
+                that.updateSession(data.sessionId, data.tokens);
 
             };
 
@@ -80,19 +98,19 @@ module.exports = function(options) {
 
                 var session = this.sessions[sessionId];
 
-                // If session is older than 14 days, remove the session
-                if(Math.floor((Date.now() - session.createdAt) / CONSTANT_1_DAY_IN_MILISEC) > 14) {
+                // If session TTL is reached, remove the session
+                if(Date.now() > session.expiredAt) {
 
-                    console.log("Session is older than 14 days, remove the session");
+                    console.log("Session expired, remove the session");
 
                     this.deleteSession(sessionId);
                     break;
                 }
 
                 // If token will expire within 5 min, refresh the token
-                if(Math.floor((Date.now() - session.tokens["expires_at"]) / CONSTANT_1_MIN_IN_MILISEC) < 5) {
+                if(Date.now() > session.tokens["expires_at"]) {
 
-                    console.log("Token will expire within 5 min, refresh the token");
+                    console.log("Token will expire. Refresh the token");
 
                     var refreshToken = session.tokens["refresh_token"];
 
@@ -107,6 +125,31 @@ module.exports = function(options) {
             //setTimeout(that.startloop(that), 30*1000);
 
         }; // checkloop ()
+
+        this.pingSessions = function() {
+
+            console.log("Sessions.pingSessions start");
+
+            for (var sessionId in this.sessions) {
+
+                console.log("sessionId");
+                console.log(sessionId);
+
+                var session = this.sessions[sessionId];
+
+                var accessToken = session.tokens["access_token"];
+
+                avsInit.sendPingToAVS(accessToken, function(error, data) {
+                    if(error) {
+                        console.log("Sessions.pingSessions failed with sessionId: " + sessionId);
+                        return;
+                    }
+                    console.log("Sessions.pingSessions succeeded with sessionId: " + sessionId);
+                });
+
+            }
+
+        }; // pingSessions()
 
         this.refreshTokens = function(refreshToken, clientId, clientSecret, sessionId, callback) {
 

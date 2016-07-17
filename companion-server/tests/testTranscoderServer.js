@@ -33,18 +33,10 @@ var requestOptions = {
     url: "https://192.168.1.185:9443/api/v1/transcode",
     formData: formData,
     method: 'POST',
-    rejectUnauthorized: false
+    rejectUnauthorized: false,
+    encoding: null
 };
 */
-
-// AWS
-var requestOptions = {
-    url: "https://52.201.229.195:9443/api/v1/transcode",
-    formData: formData,
-    method: 'POST',
-    rejectUnauthorized: false
-};
-
 
 request(requestOptions, function optionalCallback(err, httpResponse, body) {
     if (err) {
