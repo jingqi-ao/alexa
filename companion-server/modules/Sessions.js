@@ -188,6 +188,24 @@ module.exports = function(options) {
 
         }; // refreshTokens()
 
+        // Get accessToken
+        this.getTokens = function(sessionId) {
+
+            var session = this.sessions[sessionId];
+
+            console.log("Session.getAccessToken session");
+            console.log(session);
+
+            if(!session) {
+                return null;
+            }
+
+            console.log("Session.getTokens session.tokens");
+            console.log(session.tokens);
+
+            return session.tokens;
+
+        }; // getAccessToken
 
 
     }

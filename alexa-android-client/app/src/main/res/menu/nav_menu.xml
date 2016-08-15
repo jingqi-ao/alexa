@@ -4,5 +4,8 @@
     <item android:id="@+id/navmenu_amazonauth"
         android:title="Amazon Authorization">
     </item>
+    <item android:id="@+id/navmenu_authenciation"
+        android:title="Authentication">
+    </item>
 
 </menu>

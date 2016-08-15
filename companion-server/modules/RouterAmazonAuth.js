@@ -172,7 +172,8 @@ module.exports = function(options)  {
                     });
                 }
 
-                res.send('Tokens obtained');
+                //res.send('Tokens obtained');
+                res.redirect('avs://com.jao.alexaandroidclient');
             });
 
             return;
@@ -181,6 +182,28 @@ module.exports = function(options)  {
         res.status(500).send('/amazonauthredirect failed');
 
     }); // router.get('/amazonauthredirect', ...)
+
+    // Return full token set (including access token, refresh token and ttl)
+    router.get('/amazontoken', function(req, res) {
+
+        var sessions = options.sessions;
+
+        var sessionId = req.query.sessionId;
+
+        if(!sessionId) {
+            res.status(403).send('No session Id');
+            return;
+        }
+
+        var session = sessions.getTokens(sessionId);
+        if(!session) {
+            res.status(500).send('No session found');
+            return;
+        }
+
+        res.status(200).send(session);
+
+    })
 
     return router;
 

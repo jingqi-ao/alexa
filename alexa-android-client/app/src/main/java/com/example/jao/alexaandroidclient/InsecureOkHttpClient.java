@@ -16,11 +16,8 @@ import okhttp3.OkHttpClient;
 
 public class InsecureOkHttpClient {
 
-    InsecureOkHttpClient() {
-
-    }
-
     public static OkHttpClient getInsecureOkHttpClient() {
+
         try {
             // Create a trust manager that does not validate certificate chains
             final TrustManager[] trustAllCerts = new TrustManager[] {

@@ -92,9 +92,8 @@ public class MainActivity extends AppCompatActivity {
     String mStatus = STATUS_READY;
 
     // Cloud server
-    private String mCloudEndpoint = "https://192.168.1.185:8443";
-
-    //private String mCloudEndpoint = "http://192.168.1.185:8080";
+    //private String mCloudEndpoint = "https://52.205.199.58:8443";
+    private String mCloudEndpoint = "https://192.168.0.24:8443";
 
 
     @Override
@@ -177,9 +176,20 @@ public class MainActivity extends AppCompatActivity {
             case R.id.navmenu_amazonauth:
                 openSession();
                 return true;
+            case R.id.navmenu_authenciation:
+                openAthenticationActivity();
+                return true;
             default:
                 return super.onOptionsItemSelected(item);
         }
+    }
+
+    // Open Authentication Activity
+    private void openAthenticationActivity() {
+
+        Intent intent = new Intent(this, AuthenActivity.class);
+        startActivity(intent);
+
     }
 
     // Handle Amazon Authorization

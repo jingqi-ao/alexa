@@ -112,6 +112,7 @@ var routerAmazonAuth = RouterAmazonAuth({
     amazonAuthRedirectURL: avsConfig.amazonAuthRedirectURL,
     clientId: avsConfig.clientId,
     clientSecret: avsConfig.clientSecret,
+    sessions: sessions,
     obtainTokenCallback: function(error, data) {
         if(error) {
             console.log("error");
