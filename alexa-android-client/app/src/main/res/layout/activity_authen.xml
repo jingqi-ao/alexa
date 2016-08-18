@@ -9,18 +9,27 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="com.example.jao.alexaandroidclient.AuthenActivity">
 
+    <!--
     <WebView  xmlns:android="http://schemas.android.com/apk/res/android"
         android:id="@+id/webviewAuthen"
         android:layout_width="fill_parent"
         android:layout_height="400dp"
         />
+    -->
 
     <Button
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Login"
         android:id="@+id/btnAuthenLogin"
-        android:layout_below="@id/webviewAuthen"
+        android:layout_centerHorizontal="true" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Init"
+        android:id="@+id/btnAuthenInit"
+        android:layout_below="@id/btnAuthenLogin"
         android:layout_centerHorizontal="true" />
 
 </RelativeLayout>

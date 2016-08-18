@@ -43,8 +43,9 @@ public class AuthenActivity extends AppCompatActivity {
     private static final String LOG_TAG = "AlexaAndroidClient";
 
     String mCloudEndpoint= "https://192.168.0.24:8443";
+    String ALEXA_CLOUD_ENDPOINT = "https://avs-alexa-na.amazon.com";
+    String ALEXA_DIRECT_PATH = "/v20160207/directives";
 
-    WebView mWebview;
     String mSessionId = null;
     String mAccessToken = null;
 
@@ -54,12 +55,6 @@ public class AuthenActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_authen);
-
-        mWebview = (WebView) findViewById(R.id.webviewAuthen);
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            mWebview.setWebContentsDebuggingEnabled(true);
-        }
 
         //mWebview.setWebViewClient(new WebViewClient());
         //mWebview.setWebViewClient(new InsecureWebViewClient());
@@ -89,6 +84,25 @@ public class AuthenActivity extends AppCompatActivity {
                 Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(mCloudEndpoint + "/auth/amazonauth" + "?sessionId=" + mSessionId));
                 startActivity(browserIntent);
 
+
+            }
+        });
+
+        Button btnInit = (Button) findViewById(R.id.btnAuthenInit);
+        btnInit.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+                String urlString = ALEXA_CLOUD_ENDPOINT + ALEXA_DIRECT_PATH;
+
+                HTTPRequest httpRequest = null;
+                try {
+                    httpRequest = new HTTPRequest(new URL(urlString), mSessionId);
+                } catch (MalformedURLException e) {
+                    e.printStackTrace();
+                }
+
+                new OpenDownChannelTask().execute(httpRequest);
 
             }
         });
@@ -280,8 +294,61 @@ public class AuthenActivity extends AppCompatActivity {
 
             // Commit the edits!
             editor.commit();
+
+            mAccessToken = tokens.accessToken;
+
         }
 
-    }
+    } // private class GetAmazonTokenTask extends AsyncTask<HTTPRequest, String, Tokens>
+
+    private class OpenDownChannelTask extends AsyncTask<HTTPRequest, String, Tokens> {
+
+        //OkHttpClient client = new OkHttpClient();
+        OkHttpClient client = SecureOkHttpClient.getTLS12OkHttpClient();
+
+        @Override
+        protected Tokens doInBackground(HTTPRequest... httpRequests) {
+
+            Request request = null;
+            Response response = null;
+
+            Log.i(LOG_TAG, "Starting Open Downchannel procedure");
+            long start = System.currentTimeMillis();
+            try {
+                OkHttpClient client = SecureOkHttpClient.getTLS12OkHttpClient();
+
+                Log.i(LOG_TAG, "Downchannel open: " + httpRequests[0].getURL());
+                Log.i(LOG_TAG, "Downchannel open: " + mAccessToken);
+
+                request = new Request.Builder()
+                        .url(httpRequests[0].getURL())
+                        .addHeader("Authorization", "Bearer " + mAccessToken)
+                        .build();
+
+                client.newCall(request).execute();
+
+                Log.i(LOG_TAG, "Downchannel open");
+                Log.i(LOG_TAG, "Open Downchannel process took: " + (System.currentTimeMillis() - start));
+            } catch (IOException e) {
+                Log.d(LOG_TAG, "OpenDownChannel error: " + e);
+            }
+
+            try {
+                response = client.newCall(request).execute();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            if (response != null) {
+
+                Log.d(LOG_TAG, "OpenDownChannel response: " + response.code());
+
+            }
+
+            return null;
+
+        }
+
+    } // private class OpenDownChannel extends AsyncTask<HTTPRequest, String, Tokens>
 
 }
